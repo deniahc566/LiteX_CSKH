@@ -32,7 +32,10 @@ def upsert_cskh_rows(rows: list[dict]) -> int:
     df = df.drop_duplicates(subset=["id"], keep="last")
     conn.execute("DELETE FROM cskh_raw WHERE source_file = ?", [source_file])
     conn.register("_tmp_cskh", df)
-    conn.execute("INSERT OR IGNORE INTO cskh_raw SELECT * FROM _tmp_cskh")
+    # REPLACE (not IGNORE): a ticket (id = Mã phiếu) re-exported under a new
+    # filename must overwrite its stale row. DELETE-by-source_file alone can't
+    # reach rows stored under the previous export's filename.
+    conn.execute("INSERT OR REPLACE INTO cskh_raw SELECT * FROM _tmp_cskh")
     conn.unregister("_tmp_cskh")
     return len(df)
 
@@ -48,7 +51,9 @@ def upsert_mb_email_rows(rows: list[dict]) -> int:
     df = df.drop_duplicates(subset=["ticket_id"], keep="last")
     conn.execute("DELETE FROM mb_email_raw WHERE source_file = ?", [source_file])
     conn.register("_tmp_email", df)
-    conn.execute("INSERT OR IGNORE INTO mb_email_raw SELECT * FROM _tmp_email")
+    # REPLACE (not IGNORE): re-exported tickets (ticket_id) must overwrite the
+    # stale row even when carried by a differently-named export file.
+    conn.execute("INSERT OR REPLACE INTO mb_email_raw SELECT * FROM _tmp_email")
     conn.unregister("_tmp_email")
     return len(df)
 
