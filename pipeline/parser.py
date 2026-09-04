@@ -1,12 +1,42 @@
 """Parse CSKH and MB_Email Excel files from bytes — no disk I/O."""
 import hashlib
 import io
+import re
 from datetime import datetime
 
 import openpyxl
 
 from pipeline.classify import _norm, detect_email_product
 
+
+def _sv(v) -> str:
+    """Return cell value as string, stripping Excel text-prefix apostrophe."""
+    if v is None:
+        return ""
+    return str(v).strip().lstrip("'")
+
+
+# Unicode dash variants that operators/exports use interchangeably with the
+# plain hyphen-minus: ‐ ‑ ‒ – — ― and the minus sign −.
+_DASH_CHARS = "‐‑‒–—―−"
+_DASH_RE = re.compile(f"[{_DASH_CHARS}]")
+
+
+def _norm_loai(text) -> str:
+    """Normalize a 'Loại cuộc gọi' value for fixed-map lookup.
+
+    Applies _norm (NFC + lowercase), unifies every dash variant to a plain
+    hyphen with single surrounding spaces, and collapses repeated whitespace,
+    so 'Email – LiteX', 'Email  -litex' and 'Email - LiteX' all match one key.
+    """
+    s = _DASH_RE.sub("-", _norm(_sv(text)))
+    s = re.sub(r"\s*-\s*", " - ", s)   # normalize spacing around hyphens
+    s = re.sub(r"\s+", " ", s).strip()  # collapse remaining whitespace
+    return s
+
+
+# Fixed mapping table (keys already in _norm_loai form). Any unlisted value
+# passes through unchanged.
 _LOAI_MAP_NEW = {
     "cuộc gọi đến":    "Gọi vào",
     "cuộc gọi ra":     "Gọi ra",
@@ -26,6 +56,11 @@ _LOAI_MAP_OLD = {
     "cuộc gọi đi":   "Gọi ra",
     "mạng xã hội":   "Mạng xã hội",
 }
+
+# Re-key through _norm_loai so a hand-edited key with odd spacing/dashes still
+# resolves to the same normalized lookup key used at parse time.
+_LOAI_MAP_NEW = {_norm_loai(k): v for k, v in _LOAI_MAP_NEW.items()}
+_LOAI_MAP_OLD = {_norm_loai(k): v for k, v in _LOAI_MAP_OLD.items()}
 
 _KQMAP_NEW = {
     "kq_huy_dv":              "Yêu cầu hủy",
@@ -59,13 +94,6 @@ def _parse_date(val) -> "datetime.date | None":
             except ValueError:
                 continue
     return None
-
-
-def _sv(v) -> str:
-    """Return cell value as string, stripping Excel text-prefix apostrophe."""
-    if v is None:
-        return ""
-    return str(v).strip().lstrip("'")
 
 
 def _make_old_format_id(filename: str, row_vals: tuple) -> str:
@@ -145,7 +173,7 @@ def parse_cskh_bytes(
             if dt is None or not loai_raw:
                 continue
 
-            loai    = _LOAI_MAP_NEW.get(_norm(_sv(loai_raw)), _sv(loai_raw))
+            loai    = _LOAI_MAP_NEW.get(_norm_loai(loai_raw), _sv(loai_raw))
             kq_key  = _sv(kq_raw)
             kq      = _KQMAP_NEW.get(kq_key, kq_key)
             product = _get_product(_sv(sp_raw), product_normalize)
@@ -187,7 +215,7 @@ def parse_cskh_bytes(
             row_vals = (row_idx,) + row_tuple[:16]
             row_id   = _make_old_format_id(filename, row_vals)
 
-            loai    = _LOAI_MAP_OLD.get(_norm(str(loai_raw).strip()), str(loai_raw).strip())
+            loai    = _LOAI_MAP_OLD.get(_norm_loai(loai_raw), str(loai_raw).strip())
             product = _get_product(str(sp_raw).strip() if sp_raw else "", product_normalize)
 
             rows.append({
