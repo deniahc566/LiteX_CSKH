@@ -75,6 +75,7 @@ _KQMAP_NEW = {
     "kq_khong_tim_thay_don":  "Không tìm thấy GCN",
     "kq_hoan_thanh_bt":       "Hoàn thành bồi thường",
     "kq_hoan_thanh_ltp":      "Hoàn thành tư vấn",
+    "kq_yeu_cau_hoan_phi_hdv": "Yêu cầu hoàn phí HĐV",
 }
 
 # Values that mean "no real name provided"

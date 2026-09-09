@@ -88,6 +88,7 @@ ROWS_DEF = [
     (1, "",  "- Khác",                                           "khac_khac",              False, False, True),
     (0, "",  "Khách hàng yêu cầu bồi thương",                   "boi_thuong",             False, False, False),
     (0, "",  "Khách hàng khiếu nại lỗi thu phí",               "loi_thu_phi",            False, False, False),
+    (0, "",  "Khách hàng yêu cầu hoàn phí",                     "hoan_phi_hdv",           False, False, False),
 ]
 
 

@@ -29,6 +29,8 @@ _LOI_THU_PHI_EMAIL_KW = frozenset([
     "trừ phí sai", "trừ tiền sai", "lỗi phí",
 ])
 
+_HOAN_PHI_HDV_KQ = {_norm("Yêu cầu hoàn phí HĐV"), _norm("kq_yeu_cau_hoan_phi_hdv")}
+
 
 def _has_huy(text: str) -> bool:
     return any(kw in text for kw in _HUY_KW)
@@ -72,6 +74,9 @@ def _classify(row: dict) -> str:
         is_email_mb and any(kw in nd for kw in _LOI_THU_PHI_EMAIL_KW)
     ):
         return "loi_thu_phi"
+
+    if kq in _HOAN_PHI_HDV_KQ:
+        return "hoan_phi_hdv"
 
     # When loai_kn is explicitly set by the operator, respect it as the
     # primary signal. Only fall back to noi_dung/ket_qua when loai_kn is
