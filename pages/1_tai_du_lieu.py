@@ -7,7 +7,13 @@ from pipeline.parser import parse_cskh_bytes, parse_mb_email_bytes
 st.title("Tải dữ liệu lên MotherDuck")
 
 # ── Default product normalize map (editable) ──────────────────────────────────
-_DEFAULT_NORMALIZE = """mat_tien_mb: Mất Tiền MB Đền
+_DEFAULT_NORMALIZE = """Mất tiền MB đền: Mất Tiền MB Đền
+Điện thoại VDS: Rơi Vỡ VDS
+Điện thoại MBB: Hỏng màn hình MB sửa
+Bệnh lý nghiêm trọng - MB đồng hành: Bệnh lý nghiêm trọng MB đồng hành
+An ninh mạng - BIDV: Bảo An Tài Khoản BIDV
+An ninh mạng - VIB: An ninh mạng - VIB
+mat_tien_mb: Mất Tiền MB Đền
 roi_vo_vds: Rơi Vỡ VDS
 BH_MHDT_MBB: Hỏng màn hình MB sửa
 benh_ly_nghiem_trong_mbdh: Bệnh lý nghiêm trọng MB đồng hành

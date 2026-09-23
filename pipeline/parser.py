@@ -103,11 +103,13 @@ def _make_old_format_id(filename: str, row_vals: tuple) -> str:
 
 
 def _get_product(raw: str, product_normalize: dict) -> str:
-    key = raw.strip()
-    if key in product_normalize:
-        return product_normalize[key]
-    if key in product_normalize.values():
-        return key
+    key = _norm_loai(raw)
+    for k, v in product_normalize.items():
+        if _norm_loai(k) == key:
+            return v
+    for v in product_normalize.values():
+        if _norm_loai(v) == key:
+            return v
     return next(iter(product_normalize.values()), "Khác")
 
 
