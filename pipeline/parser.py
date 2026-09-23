@@ -120,6 +120,14 @@ def _clean_ten_kh(raw) -> str:
     return "" if s in _EMPTY_NAME else str(raw).strip()
 
 
+_HEADER_NAMES = dict(
+    ma="Mã phiếu", ten_kh="Tên khách hàng", loai="Kênh tiếp nhận",
+    loai_kn="Loại khiếu nại", thai_do="Thái độ khách hàng",
+    noi_dung="Nội dung tiếp nhận", sp="Sản phẩm bảo hiểm",
+    kq="Kết quả cuộc gọi", date="Ngày tiếp nhận",
+)
+
+
 def _detect_format(ws) -> str:
     """Return 'old', 'new', or 'new_v2' based on column-3 header."""
     h = _norm(str(ws.cell(1, 3).value or ""))
@@ -158,6 +166,15 @@ def parse_cskh_bytes(
             _IDX = dict(ma=1, ten_kh=2, loai=7, loai_kn=9,
                         thai_do=11, noi_dung=12, sp=13, kq=14, date=15)
             _MIN_COLS = 16
+
+        # Prefer locating columns by header name so inserted columns
+        # (e.g. "Hàng chờ") don't shift the layout.
+        headers = [_norm(_sv(c.value)) for c in next(ws.iter_rows(min_row=1, max_row=1))]
+        by_name = {k: headers.index(_norm(h)) for k, h in _HEADER_NAMES.items()
+                   if _norm(h) in headers}
+        if len(by_name) == len(_HEADER_NAMES):
+            _IDX = by_name
+            _MIN_COLS = max(by_name.values()) + 1
 
         for row_tuple in ws.iter_rows(min_row=2, values_only=True):
             if len(row_tuple) < _MIN_COLS:
