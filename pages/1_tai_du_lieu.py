@@ -3,8 +3,13 @@ import streamlit as st
 
 from pipeline.db import upsert_cskh_rows, upsert_mb_email_rows, get_row_counts, get_date_range
 from pipeline.parser import parse_cskh_bytes, parse_mb_email_bytes
+from ui import page_header
 
-st.title("Tải dữ liệu lên MotherDuck")
+page_header(
+    "Tải dữ liệu lên MotherDuck",
+    eyebrow="Dữ liệu",
+    subtitle="Tải file CSKH và MB Email (.xlsx) để cập nhật dữ liệu báo cáo.",
+)
 
 # ── Default product normalize map (editable) ──────────────────────────────────
 _DEFAULT_NORMALIZE = """Mất tiền MB đền: Mất Tiền MB Đền
@@ -63,14 +68,14 @@ st.divider()
 # ── File uploaders ─────────────────────────────────────────────────────────────
 col1, col2 = st.columns(2)
 
-with col1:
+with col1.container(border=True):
     st.subheader("File CSKH (DanhSachSuVu)")
     cskh_files = st.file_uploader(
         "Chọn file CSKH (.xlsx)", type="xlsx", accept_multiple_files=True,
         key="cskh_upload",
     )
 
-with col2:
+with col2.container(border=True):
     st.subheader("File MB Email")
     email_files = st.file_uploader(
         "Chọn file MB Email (.xlsx)", type="xlsx", accept_multiple_files=True,
@@ -117,11 +122,11 @@ try:
     counts    = get_row_counts()
     dr        = get_date_range()
     col_a, col_b, col_c = st.columns(3)
-    col_a.metric("cskh_raw",     f"{counts['cskh_raw']:,} rows")
-    col_b.metric("mb_email_raw", f"{counts['mb_email_raw']:,} rows")
+    col_a.metric("CSKH",     f"{counts['cskh_raw']:,} dòng")
+    col_b.metric("MB Email", f"{counts['mb_email_raw']:,} dòng")
     if dr:
-        col_c.metric("Date range", f"{dr[0].strftime('%d/%m/%Y')} – {dr[1].strftime('%d/%m/%Y')}")
+        col_c.metric("Khoảng thời gian", f"{dr[0].strftime('%d/%m/%Y')} – {dr[1].strftime('%d/%m/%Y')}")
     else:
-        col_c.metric("Date range", "Chưa có dữ liệu")
+        col_c.metric("Khoảng thời gian", "Chưa có dữ liệu")
 except Exception as exc:
     st.warning(f"Không thể kết nối MotherDuck: {exc}")

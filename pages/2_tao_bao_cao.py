@@ -18,6 +18,7 @@ from pipeline.db import (
 from pipeline.reclassify import apply_mb_reclassification
 from pipeline.report_mb import build_report_mb
 from pipeline.report_real import build_report_real
+from ui import page_header
 
 PRODUCT_API_FILTERS: dict[str, dict] = {
     "Mất Tiền MB Đền":                        {"sub_order_types": [3], "partner_codes": ["MB"]},
@@ -28,25 +29,30 @@ PRODUCT_API_FILTERS: dict[str, dict] = {
     "An ninh mạng - VIB":                    {"sub_order_types": [3], "partner_codes": ["VIB"]},
 }
 
-st.title("Tạo báo cáo CSKH")
+page_header(
+    "Tạo báo cáo CSKH",
+    eyebrow="Báo cáo",
+    subtitle="Chọn khoảng thời gian và loại báo cáo, sau đó tải file Excel về.",
+)
 
 # ── Date range ────────────────────────────────────────────────────────────────
 dr = get_date_range()
 default_from = dr[0] if dr else VALID_DATE_RANGE[0]
 default_to   = dr[1] if dr else date.today()
 
-col1, col2 = st.columns(2)
-with col1:
-    date_from = st.date_input("Từ ngày", value=default_from)
-with col2:
-    date_to = st.date_input("Đến ngày", value=default_to)
+with st.container(border=True):
+    col1, col2 = st.columns(2)
+    with col1:
+        date_from = st.date_input("Từ ngày", value=default_from, format="DD/MM/YYYY")
+    with col2:
+        date_to = st.date_input("Đến ngày", value=default_to, format="DD/MM/YYYY")
 
-# ── Report type ────────────────────────────────────────────────────────────────
-report_type = st.radio(
-    "Loại báo cáo",
-    ["Báo cáo LiteX", "Báo cáo cho Đối tác", "Cả hai"],
-    horizontal=True,
-)
+    # ── Report type ────────────────────────────────────────────────────────────
+    report_type = st.radio(
+        "Loại báo cáo",
+        ["Báo cáo LiteX", "Báo cáo cho Đối tác", "Cả hai"],
+        horizontal=True,
+    )
 
 # ── KH active override ────────────────────────────────────────────────────────
 with st.expander("KH active override (để trống = gọi API + cache)", expanded=False):
@@ -169,6 +175,7 @@ if st.button("Tạo báo cáo", type="primary"):
             zf.writestr(f"BC_CSKH_{d0}_{d1}.xlsx", report_bytes_real)
             zf.writestr(f"BC_CSKH_doitac_{d0}_{d1}.xlsx", report_bytes_mb)
         st.download_button(
+            type="primary",
             label="Tải cả hai báo cáo (.zip)",
             data=buf.getvalue(),
             file_name=f"BC_CSKH_{d0}_{d1}.zip",
@@ -176,6 +183,7 @@ if st.button("Tạo báo cáo", type="primary"):
         )
     elif report_bytes_real:
         st.download_button(
+            type="primary",
             label="Tải Báo cáo LiteX (.xlsx)",
             data=report_bytes_real,
             file_name=f"BC_CSKH_{d0}_{d1}.xlsx",
@@ -183,6 +191,7 @@ if st.button("Tạo báo cáo", type="primary"):
         )
     elif report_bytes_mb:
         st.download_button(
+            type="primary",
             label="Tải Báo cáo cho Đối tác (.xlsx)",
             data=report_bytes_mb,
             file_name=f"BC_CSKH_doitac_{d0}_{d1}.xlsx",
