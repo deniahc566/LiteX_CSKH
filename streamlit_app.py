@@ -1,7 +1,9 @@
 """Entry point for Streamlit Cloud deployment."""
 import streamlit as st
 
-st.set_page_config(page_title="Báo cáo CSKH MB", layout="wide")
+from ui import setup_page
+
+setup_page("Báo cáo CSKH MB")
 
 pg = st.navigation(
     {
