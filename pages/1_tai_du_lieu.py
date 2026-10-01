@@ -17,6 +17,7 @@ _DEFAULT_NORMALIZE = """Mất tiền MB đền: Mất Tiền MB Đền
 Bệnh lý nghiêm trọng - MB đồng hành: Bệnh lý nghiêm trọng MB đồng hành
 An ninh mạng - BIDV: Bảo An Tài Khoản BIDV
 An ninh mạng - VIB: An ninh mạng - VIB
+BIDV - Bảo An Thiết Bị: Bảo An Thiết Bị BIDV
 mat_tien_mb: Mất Tiền MB Đền
 roi_vo_vds: Rơi Vỡ VDS
 BH_MHDT_MBB: Hỏng màn hình MB sửa
