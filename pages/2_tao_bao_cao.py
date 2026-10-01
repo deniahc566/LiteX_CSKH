@@ -27,6 +27,7 @@ PRODUCT_API_FILTERS: dict[str, dict] = {
     "Bệnh lý nghiêm trọng MB đồng hành":     {"sub_order_types": [6], "partner_codes": ["MB"]},
     "Bảo An Tài Khoản BIDV":                 {"sub_order_types": [3], "partner_codes": ["BIDV"]},
     "An ninh mạng - VIB":                    {"sub_order_types": [3], "partner_codes": ["VIB"]},
+    "Bảo An Thiết Bị BIDV":                  {"sub_order_types": [4], "partner_codes": ["BIDV"]},
 }
 
 page_header(
