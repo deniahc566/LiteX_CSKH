@@ -120,12 +120,31 @@ def _clean_ten_kh(raw) -> str:
     return "" if s in _EMPTY_NAME else str(raw).strip()
 
 
+def _clean_sdt(raw) -> str:
+    """Normalize a phone number to digits only so old/new exports compare equal.
+
+    '84xxxxxxxxx' → '0xxxxxxxxx'; a 9-digit number stored as an Excel number
+    (leading 0 dropped, old format) gets its 0 back.
+    """
+    if isinstance(raw, float) and raw.is_integer():
+        raw = int(raw)
+    digits = re.sub(r"\D", "", _sv(raw))
+    if len(digits) == 11 and digits.startswith("84"):
+        digits = "0" + digits[2:]
+    elif len(digits) == 9 and not digits.startswith("0"):
+        digits = "0" + digits
+    return digits
+
+
 _HEADER_NAMES = dict(
     ma="Mã phiếu", ten_kh="Tên khách hàng", loai="Kênh tiếp nhận",
     loai_kn="Loại khiếu nại", thai_do="Thái độ khách hàng",
     noi_dung="Nội dung tiếp nhận", sp="Sản phẩm bảo hiểm",
     kq="Kết quả cuộc gọi", date="Ngày tiếp nhận",
 )
+# Optional column — located by name when present, never required for the
+# header-name layout to be accepted.
+_SDT_HEADER = "Số điện thoại"
 
 
 def _detect_format(ws) -> str:
@@ -147,7 +166,7 @@ def parse_cskh_bytes(
 
     Returns list of dicts with keys:
       id, ma_phieu, source_file, format, event_date,
-      loai, loai_kn, noi_dung, ket_qua, product, thai_do, ten_kh
+      loai, loai_kn, noi_dung, ket_qua, product, thai_do, ten_kh, sdt
     """
     wb = openpyxl.load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=True)
     ws = wb.active
@@ -159,11 +178,11 @@ def parse_cskh_bytes(
         # new_v2: 21-col layout — extra Đầu số (col3), Số hợp đồng (col10),
         #         Thời gian hẹn gọi lại (col12); date shifts to col17
         if fmt == "new_v2":
-            _IDX = dict(ma=1, ten_kh=3, loai=8, loai_kn=10,
+            _IDX = dict(ma=1, ten_kh=3, sdt=4, loai=8, loai_kn=10,
                         thai_do=12, noi_dung=13, sp=14, kq=15, date=16)
             _MIN_COLS = 17
         else:
-            _IDX = dict(ma=1, ten_kh=2, loai=7, loai_kn=9,
+            _IDX = dict(ma=1, ten_kh=2, sdt=3, loai=7, loai_kn=9,
                         thai_do=11, noi_dung=12, sp=13, kq=14, date=15)
             _MIN_COLS = 16
 
@@ -173,14 +192,16 @@ def parse_cskh_bytes(
         by_name = {k: headers.index(_norm(h)) for k, h in _HEADER_NAMES.items()
                    if _norm(h) in headers}
         if len(by_name) == len(_HEADER_NAMES):
+            by_name["sdt"] = headers.index(_norm(_SDT_HEADER)) if _norm(_SDT_HEADER) in headers else None
             _IDX = by_name
-            _MIN_COLS = max(by_name.values()) + 1
+            _MIN_COLS = max(v for v in by_name.values() if v is not None) + 1
 
         for row_tuple in ws.iter_rows(min_row=2, values_only=True):
             if len(row_tuple) < _MIN_COLS:
                 continue
             ma_phieu    = row_tuple[_IDX["ma"]]
             ten_kh_raw  = row_tuple[_IDX["ten_kh"]]
+            sdt_raw     = row_tuple[_IDX["sdt"]] if _IDX["sdt"] is not None else None
             loai_raw    = row_tuple[_IDX["loai"]]
             loai_kn     = row_tuple[_IDX["loai_kn"]]
             thai_do_raw = row_tuple[_IDX["thai_do"]]
@@ -212,6 +233,7 @@ def parse_cskh_bytes(
                 "product":     product,
                 "thai_do":     _sv(thai_do_raw),
                 "ten_kh":      _clean_ten_kh(_sv(ten_kh_raw) or ten_kh_raw),
+                "sdt":         _clean_sdt(sdt_raw),
             })
     else:
         for row_idx, row_tuple in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
@@ -220,6 +242,7 @@ def parse_cskh_bytes(
             d_val       = row_tuple[1]   # col 2
             loai_raw    = row_tuple[2]   # col 3
             ten_kh_raw  = row_tuple[4]   # col 5
+            sdt_raw     = row_tuple[5]   # col 6
             loai_kn     = row_tuple[10]  # col 11
             thai_do_raw = row_tuple[12]  # col 13
             noi_dung    = row_tuple[13]  # col 14
@@ -251,6 +274,7 @@ def parse_cskh_bytes(
                 "product":     product,
                 "thai_do":     str(thai_do_raw).strip() if thai_do_raw else "",
                 "ten_kh":      _clean_ten_kh(ten_kh_raw),
+                "sdt":         _clean_sdt(sdt_raw),
             })
 
     wb.close()

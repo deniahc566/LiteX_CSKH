@@ -52,7 +52,9 @@ _MAX_RETRIES = 4
 
 # ── DB ────────────────────────────────────────────────────────────────────────
 def _connect(token: str) -> duckdb.DuckDBPyConnection:
-    return duckdb.connect(f"md:mb_data?motherduck_token={token}")
+    con = duckdb.connect(f"md:mb_data?motherduck_token={token}")
+    con.execute("ALTER TABLE cskh_raw ADD COLUMN IF NOT EXISTS sdt VARCHAR")
+    return con
 
 
 def _insert_df(con, table: str, df: pd.DataFrame):
@@ -73,8 +75,10 @@ def _load_cskh_file(fp: Path) -> pd.DataFrame:
         df["thai_do"] = ""
     if "ten_kh" not in df.columns:
         df["ten_kh"] = ""
+    if "sdt" not in df.columns:
+        df["sdt"] = ""
     return df[["id", "ma_phieu", "source_file", "format", "event_date",
-               "loai", "loai_kn", "noi_dung", "ket_qua", "product", "uploaded_at", "thai_do", "ten_kh"]]
+               "loai", "loai_kn", "noi_dung", "ket_qua", "product", "uploaded_at", "thai_do", "ten_kh", "sdt"]]
 
 
 def _load_mb_email_file(fp: Path) -> pd.DataFrame:

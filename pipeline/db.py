@@ -14,12 +14,19 @@ def get_conn() -> duckdb.DuckDBPyConnection:
     return duckdb.connect(f"md:mb_data?motherduck_token={token}")
 
 
+def _ensure_sdt_column(conn: duckdb.DuckDBPyConnection) -> None:
+    # sdt (Số điện thoại) is the dedup key for bồi thường; appended last so
+    # positional INSERT ... SELECT * keeps lining up with the column list below.
+    conn.execute("ALTER TABLE cskh_raw ADD COLUMN IF NOT EXISTS sdt VARCHAR")
+
+
 # ── Upsert ────────────────────────────────────────────────────────────────────
 
 def upsert_cskh_rows(rows: list[dict]) -> int:
     if not rows:
         return 0
     conn = get_conn()
+    _ensure_sdt_column(conn)
     source_file = rows[0]["source_file"]
     df = pd.DataFrame(rows)
     df["uploaded_at"] = datetime.utcnow()
@@ -27,8 +34,10 @@ def upsert_cskh_rows(rows: list[dict]) -> int:
         df["thai_do"] = ""
     if "ten_kh" not in df.columns:
         df["ten_kh"] = ""
+    if "sdt" not in df.columns:
+        df["sdt"] = ""
     df = df[["id", "ma_phieu", "source_file", "format", "event_date",
-             "loai", "loai_kn", "noi_dung", "ket_qua", "product", "uploaded_at", "thai_do", "ten_kh"]]
+             "loai", "loai_kn", "noi_dung", "ket_qua", "product", "uploaded_at", "thai_do", "ten_kh", "sdt"]]
     df = df.drop_duplicates(subset=["id"], keep="last")
     conn.execute("DELETE FROM cskh_raw WHERE source_file = ?", [source_file])
     conn.register("_tmp_cskh", df)
@@ -66,20 +75,22 @@ def fetch_cskh_rows(
 ) -> list[dict]:
     """Return rows as dicts compatible with calc_real / calc_mb.
 
-    Keys: event_date, loai, loai_kn, noi_dung, ket_qua, product, id
+    Keys: event_date, loai, loai_kn, noi_dung, ket_qua, product, id, thai_do, ten_kh, sdt
     """
     conn = get_conn()
+    _ensure_sdt_column(conn)
     where, params = _date_filter(date_from, date_to, col="event_date")
     sql = f"""
         SELECT id, event_date, loai, loai_kn, noi_dung, ket_qua, product,
                COALESCE(thai_do, '') AS thai_do,
-               COALESCE(ten_kh, '') AS ten_kh
+               COALESCE(ten_kh, '') AS ten_kh,
+               COALESCE(sdt, '') AS sdt
         FROM cskh_raw
         {where}
         ORDER BY event_date
     """
     res = conn.execute(sql, params).fetchall()
-    cols = ["id", "event_date", "loai", "loai_kn", "noi_dung", "ket_qua", "product", "thai_do", "ten_kh"]
+    cols = ["id", "event_date", "loai", "loai_kn", "noi_dung", "ket_qua", "product", "thai_do", "ten_kh", "sdt"]
     return [dict(zip(cols, row)) for row in res]
 
 

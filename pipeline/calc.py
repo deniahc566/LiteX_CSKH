@@ -45,17 +45,19 @@ DATE_GROUPS = [
 
 
 def _count_boi_thuong(rows: list[dict], seen: set | None = None) -> int:
+    # Dedup key = Số điện thoại; fall back to Tên KH only when the phone is blank
+    # (same-name different people must not collapse into one claim).
     if seen is None:
         seen = set()
     count = 0
     for r in rows:
         if _classify(r) != "boi_thuong":
             continue
-        name = _norm(r.get("ten_kh", "")).strip()
-        if name:
-            if name in seen:
+        key = (r.get("sdt") or "").strip() or _norm(r.get("ten_kh", "")).strip()
+        if key:
+            if key in seen:
                 continue
-            seen.add(name)
+            seen.add(key)
         count += 1
     return count
 
